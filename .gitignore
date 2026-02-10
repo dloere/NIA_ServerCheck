@@ -1,0 +1,4 @@
+.history/
+linux-checks/build/
+linux-checks/dist/
+linux-checks/check_runner.spec
