@@ -1,7 +1,9 @@
-from py_common import run_cmd
+from typing import List, Tuple
+
+from .py_common import run_cmd
 
 
-def ui_engine_check(sudo_prefix: list[str]) -> tuple[int, str]:
+def ui_engine_check(sudo_prefix: List[str]) -> Tuple[int, str]:
     lines = ["[UI/ENGINE] UI/엔진 모듈 점검 시작"]
     expected = [
         "/home/codej8888/server/lib/com.nia.ai.per.ap-0.0.1-SNAPSHOT.jar",

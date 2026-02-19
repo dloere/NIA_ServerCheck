@@ -53,8 +53,11 @@ def run_check(name: str, func, all_log: str, fail_log: str) -> int:
 
 
 def main() -> int:
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    root_dir = script_dir
+    if getattr(sys, "frozen", False):
+        # PyInstaller onefile runs from a temp dir; use current working dir.
+        root_dir = os.getcwd()
+    else:
+        root_dir = os.path.dirname(os.path.abspath(__file__))
     conf_path = os.path.join(root_dir, "checks.conf")
 
     year_dir = datetime.now().strftime("%Y")
@@ -68,15 +71,15 @@ def main() -> int:
     if not conf:
         write_log("[WARN] checks.conf 없음, 기본값 사용", all_log)
 
-    # Allow local imports from checks/
-    checks_dir = os.path.join(root_dir, "checks")
-    if checks_dir not in sys.path:
-        sys.path.insert(0, checks_dir)
+    # Allow local package imports from checks/
+    if root_dir not in sys.path:
+        sys.path.insert(0, root_dir)
 
-    from db_check import db_check
-    from cron_check import cron_check
-    from ui_engine_check import ui_engine_check
-    from resource_check import resource_check
+    from checks.db_check import db_check
+    from checks.cron_check import cron_check
+    from checks.ui_engine_check import ui_engine_check
+    from checks.resource_check import resource_check
+from checks.temperature_check import temperature_check
 
     sudo_prefix = [] if is_root() else ["sudo"]
 
@@ -101,6 +104,11 @@ def main() -> int:
         run_check("리소스 점검", resource_check, all_log, fail_log)
     else:
         write_log("[SKIP] 리소스 점검 비활성", all_log)
+
+    if conf.get("TEMP_CHECK", "1") == "1":
+        run_check("?? ???", temperature_check, all_log, fail_log)
+    else:
+        write_log("[SKIP] ?? ??? ?????", all_log)
 
     write_log("[END] 일괄 점검 종료", all_log)
     return 0

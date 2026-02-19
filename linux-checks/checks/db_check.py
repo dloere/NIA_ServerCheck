@@ -1,7 +1,9 @@
-from py_common import run_cmd
+from typing import List, Tuple
+
+from .py_common import run_cmd
 
 
-def db_check(sudo_prefix: list[str]) -> tuple[int, str]:
+def db_check(sudo_prefix: List[str]) -> Tuple[int, str]:
     lines = ["[DB] PostgreSQL 점검 시작"]
     db_port = "6544"
     service_name = "postgresql"

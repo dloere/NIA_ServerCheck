@@ -1,4 +1,4 @@
-﻿# 리눅스 서버 점검 스크립트 개발 메모
+# 리눅스 서버 점검 스크립트 개발 메모
 
 이 문서는 Codex가 이 폴더의 목적과 현재 구조를 즉시 이해하기 위한 인수인계용 요약이다.
 
@@ -21,6 +21,7 @@
 - linux-checks/checks.conf : 점검 활성/비활성 설정
 - linux-checks/build_pyinstaller.sh : PyInstaller 빌드 스크립트 (리눅스)
 - linux-checks/checks/py_common.py : Python 공통 유틸
+- linux-checks/checks/checks_summary.md : 각 점검 스크립트의 기능을 요약하며, 점검 스크립트 수정 시 반드시 함께 업데이트해야 합니다.
 - linux-checks/checks/db_check.py : Python DB 점검
 - linux-checks/checks/cron_check.py : Python cron 점검
 - linux-checks/checks/ui_engine_check.py : Python UI/엔진 모듈 점검
@@ -39,3 +40,9 @@
 - 점검 항목 확장 (10개 이상 예정)
 - Python 단일 실행 파일 배포 시 리눅스에서 PyInstaller 빌드 필요
 - PyInstaller 빌드 시 생성되는 check_runner.spec는 기본적으로 유지해도 무방 (불필요하면 수동 삭제)
+
+# Gemini CLI의 역할 이해
+
+LINUX_CHECK_SCRIPTS.md 문서를 바탕으로 저의 역할은 다음과 같습니다:
+
+저는 Python 기반의 모듈식 리눅스 서버 점검 스크립트 시스템을 지원합니다. 저의 책임은 check_runner.py 오케스트레이션 스크립트가 checks.conf를 통해 구성된 다양한 개별 점검 스크립트(예: db_check.py, cron_check.py)를 순차적으로 실행하는 아키텍처를 이해하는 것을 포함합니다. 저는 이 스크립트들이 Ubuntu 20.04.2 LTS를 대상으로 하며, PostgreSQL 및 JVM 프로세스와 같은 특정 서비스를 점검하고, 요약을 출력하며, 로그를 생성한다는 것을 인지해야 합니다. 저의 궁극적인 목표는 새로운 점검 항목 추가 또는 PyInstaller 빌드 관리와 같은 작업을 포함하여 이 시스템의 개발, 유지보수 및 확장을 용이하게 하는 것입니다.

@@ -1,12 +1,15 @@
-from py_common import run_cmd
+from typing import Tuple
+
+from .py_common import run_cmd
 
 
-def resource_check() -> tuple[int, str]:
+def resource_check() -> Tuple[int, str]:
     lines = ["[RESOURCE] 리소스 점검 시작"]
     mem_warn = 85
     mem_fail = 90
-    swap_warn = 50
-    swap_fail = 80
+    # swap check disabled for now
+    # swap_warn = 50
+    # swap_fail = 80
     disk_warn = 85
     disk_fail = 90
 
@@ -42,22 +45,11 @@ def resource_check() -> tuple[int, str]:
         else:
             lines.append(f"[RESOURCE] 메모리 사용률 {mem_pct}% (OK)")
 
+    # 스왑 메모리 점검은 현재 보류 중이므로 비활성화합니다.
+    # 관련 변수 (swap_total, swap_used, swap_warn, swap_fail) 및 로직은 제거됩니다.
     swap_rc = 0
-    if swap_total is None or swap_used is None:
-        lines.append("[RESOURCE] 스왑 정보 수집 실패: FAIL")
-        swap_rc = 2
-    elif swap_total == 0:
-        lines.append("[RESOURCE] 스왑 비활성 (총 0MB): OK")
-    else:
-        swap_pct = (swap_used * 100) // swap_total
-        if swap_pct >= swap_fail:
-            lines.append(f"[RESOURCE] 스왑 사용률 {swap_pct}% (FAIL)")
-            swap_rc = 2
-        elif swap_pct >= swap_warn:
-            lines.append(f"[RESOURCE] 스왑 사용률 {swap_pct}% (WARN)")
-            swap_rc = 1
-        else:
-            lines.append(f"[RESOURCE] 스왑 사용률 {swap_pct}% (OK)")
+    lines.append("[RESOURCE] 스왑 메모리 점검은 현재 비활성화되어 있습니다. (OK)")
+
 
     rc, out = run_cmd(["df", "-P"])
     if rc != 0:
@@ -83,10 +75,10 @@ def resource_check() -> tuple[int, str]:
             else:
                 lines.append(f"[RESOURCE] 디스크 사용률 {usep} (OK) mount={mount} fs={fs}")
 
-    if mem_rc == 2 or swap_rc == 2 or disk_rc == 2:
+    if mem_rc == 2 or disk_rc == 2:
         lines.append("[RESOURCE] 리소스 점검 결과: FAIL")
         return 2, "\n".join(lines)
-    if mem_rc == 1 or swap_rc == 1 or disk_rc == 1:
+    if mem_rc == 1 or disk_rc == 1:
         lines.append("[RESOURCE] 리소스 점검 결과: WARN")
         return 1, "\n".join(lines)
     lines.append("[RESOURCE] 리소스 점검 결과: OK")
