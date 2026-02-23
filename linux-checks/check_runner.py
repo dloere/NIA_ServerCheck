@@ -79,7 +79,13 @@ def main() -> int:
     from checks.cron_check import cron_check
     from checks.ui_engine_check import ui_engine_check
     from checks.resource_check import resource_check
-from checks.temperature_check import temperature_check
+    from checks.temperature_check import temperature_check
+    from checks.cpu_check import cpu_check
+    from checks.ntt_engine_check import ntt_engine_check
+    from checks.docker_check import docker_check
+    from checks.django_ems_check import django_ems_check
+    from checks.chatbot_check import chatbot_check
+    from checks.rabbitmq_check import rabbitmq_check
 
     sudo_prefix = [] if is_root() else ["sudo"]
 
@@ -91,7 +97,7 @@ from checks.temperature_check import temperature_check
         write_log("[SKIP] DB 점검 비활성", all_log)
 
     if conf.get("CRON_CHECK", "1") == "1":
-        run_check("CRON 점검", cron_check, all_log, fail_log)
+        run_check("CRON 점검", lambda: cron_check(sudo_prefix), all_log, fail_log)
     else:
         write_log("[SKIP] CRON 점검 비활성", all_log)
 
@@ -101,14 +107,44 @@ from checks.temperature_check import temperature_check
         write_log("[SKIP] UI/엔진 모듈 점검 비활성", all_log)
 
     if conf.get("RESOURCE_CHECK", "1") == "1":
-        run_check("리소스 점검", resource_check, all_log, fail_log)
+        run_check("리소스 점검", lambda: resource_check(sudo_prefix), all_log, fail_log)
     else:
         write_log("[SKIP] 리소스 점검 비활성", all_log)
 
     if conf.get("TEMP_CHECK", "1") == "1":
-        run_check("?? ???", temperature_check, all_log, fail_log)
+        run_check("온도 점검", lambda: temperature_check(sudo_prefix), all_log, fail_log)
     else:
-        write_log("[SKIP] ?? ??? ?????", all_log)
+        write_log("[SKIP] 온도 점검 비활성", all_log)
+
+    if conf.get("CPU_CHECK", "1") == "1":
+        run_check("CPU 점검", lambda: cpu_check(sudo_prefix), all_log, fail_log)
+    else:
+        write_log("[SKIP] CPU 점검 비활성", all_log)
+
+    if conf.get("NTT_ENGINE_CHECK", "1") == "1":
+        run_check("NTT 엔진 점검", lambda: ntt_engine_check(sudo_prefix), all_log, fail_log)
+    else:
+        write_log("[SKIP] NTT 엔진 점검 비활성", all_log)
+
+    if conf.get("DOCKER_CHECK", "1") == "1":
+        run_check("Docker 점검", lambda: docker_check(sudo_prefix), all_log, fail_log)
+    else:
+        write_log("[SKIP] Docker 점검 비활성", all_log)
+
+    if conf.get("DJANGO_EMS_CHECK", "1") == "1":
+        run_check("Django EMS 점검", lambda: django_ems_check(sudo_prefix), all_log, fail_log)
+    else:
+        write_log("[SKIP] Django EMS 점검 비활성", all_log)
+
+    if conf.get("CHATBOT_CHECK", "1") == "1":
+        run_check("챗봇 점검", lambda: chatbot_check(sudo_prefix), all_log, fail_log)
+    else:
+        write_log("[SKIP] 챗봇 점검 비활성", all_log)
+
+    if conf.get("RABBITMQ_CHECK", "1") == "1":
+        run_check("RabbitMQ 점검", lambda: rabbitmq_check(sudo_prefix), all_log, fail_log)
+    else:
+        write_log("[SKIP] RabbitMQ 점검 비활성", all_log)
 
     write_log("[END] 일괄 점검 종료", all_log)
     return 0

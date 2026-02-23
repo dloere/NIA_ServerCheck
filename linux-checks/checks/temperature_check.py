@@ -22,7 +22,8 @@ def _read_sysfs_temps() -> List[Tuple[str, float]]:
         if not os.path.isfile(temp_path):
             continue
         try:
-            raw = open(temp_path, "r", encoding="utf-8").read().strip()
+            with open(temp_path, "r", encoding="utf-8") as f:
+                raw = f.read().strip()
             if not raw:
                 continue
             value = float(raw)
@@ -30,7 +31,8 @@ def _read_sysfs_temps() -> List[Tuple[str, float]]:
                 value = value / 1000.0
             label = name
             if os.path.isfile(type_path):
-                t = open(type_path, "r", encoding="utf-8").read().strip()
+                with open(type_path, "r", encoding="utf-8") as f:
+                    t = f.read().strip()
                 if t:
                     label = f"{name}:{t}"
             temps.append((label, value))
@@ -39,9 +41,9 @@ def _read_sysfs_temps() -> List[Tuple[str, float]]:
     return temps
 
 
-def _read_sensors() -> List[Tuple[str, float]]:
+def _read_sensors(sudo_prefix: List[str]) -> List[Tuple[str, float]]:
     temps = []
-    rc, out = run_cmd(["sensors", "-u"])
+    rc, out = run_cmd(sudo_prefix + ["sensors", "-u"])
     if rc != 0 or not out.strip():
         return temps
 
@@ -73,22 +75,22 @@ def _read_sensors() -> List[Tuple[str, float]]:
     return temps
 
 
-def temperature_check() -> Tuple[int, str]:
-    lines = ["[TEMP] temperature check start"]
+def temperature_check(sudo_prefix: List[str]) -> Tuple[int, str]:
+    lines = ["[TEMP] 온도 점검 시작"]
     severity = 0
 
     temps = _read_sysfs_temps()
     source = "sysfs"
     if not temps:
-        temps = _read_sensors()
+        temps = _read_sensors(sudo_prefix)
         source = "sensors"
 
     if not temps:
-        lines.append("[TEMP] no temperature sensors found")
-        lines.append("[TEMP] result: WARN")
+        lines.append("[TEMP] 온도 센서를 찾을 수 없음")
+        lines.append("[TEMP] 점검 결과: WARN")
         return 1, "\n".join(lines)
 
-    lines.append(f"[TEMP] source={source}, count={len(temps)}")
+    lines.append(f"[TEMP] 소스={source}, 센서 수={len(temps)}")
 
     max_temp = None
     max_label = None
@@ -103,13 +105,13 @@ def temperature_check() -> Tuple[int, str]:
             severity = max(severity, 1)
 
     if max_temp is not None:
-        lines.append(f"[TEMP] max={max_temp:.1f}C at {max_label}")
+        lines.append(f"[TEMP] 최대 온도={max_temp:.1f}C ({max_label})")
 
     if severity == 2:
-        lines.append("[TEMP] result: FAIL")
+        lines.append("[TEMP] 점검 결과: FAIL")
     elif severity == 1:
-        lines.append("[TEMP] result: WARN")
+        lines.append("[TEMP] 점검 결과: WARN")
     else:
-        lines.append("[TEMP] result: OK")
+        lines.append("[TEMP] 점검 결과: OK")
 
     return severity, "\n".join(lines)

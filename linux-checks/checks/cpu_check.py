@@ -1,6 +1,6 @@
 import os
 import time
-from typing import Tuple
+from typing import List, Tuple
 
 from .py_common import run_cmd
 
@@ -34,8 +34,8 @@ def _read_loadavg() -> Tuple[float, float, float, int]:
     return l1, l5, l15, runq
 
 
-def cpu_check() -> Tuple[int, str]:
-    lines = ["[CPU] CPU check start"]
+def cpu_check(sudo_prefix: List[str]) -> Tuple[int, str]:
+    lines = ["[CPU] CPU 점검 시작"]
     severity = 0  # 0=OK, 1=WARN, 2=FAIL
 
     try:
@@ -43,12 +43,12 @@ def cpu_check() -> Tuple[int, str]:
         time.sleep(1.0)
         t1, u1, s1, i1, ws1 = _read_proc_stat()
     except Exception as e:  # pragma: no cover
-        lines.append(f"[CPU] failed to collect /proc/stat: {e}")
+        lines.append(f"[CPU] /proc/stat 수집 실패: {e}")
         return 2, "\n".join(lines)
 
     total_delta = t1 - t0
     if total_delta <= 0:
-        lines.append("[CPU] invalid cpu delta from /proc/stat")
+        lines.append("[CPU] /proc/stat의 CPU 델타 값이 유효하지 않음")
         return 2, "\n".join(lines)
 
     user_pct = ((u1 - u0) * 100.0) / total_delta
@@ -58,22 +58,22 @@ def cpu_check() -> Tuple[int, str]:
     used_pct = 100.0 - idle_pct
 
     lines.append(
-        "[CPU] usage {:.1f}% (user {:.1f}% / system {:.1f}% / idle {:.1f}% / iowait+steal {:.1f}%)".format(
+        "[CPU] 사용률 {:.1f}% (user {:.1f}% / system {:.1f}% / idle {:.1f}% / iowait+steal {:.1f}%)".format(
             used_pct, user_pct, system_pct, idle_pct, iowait_steal_pct
         )
     )
 
     if used_pct >= 95.0:
-        lines.append("[CPU] total usage too high: FAIL")
+        lines.append("[CPU] 전체 사용률 너무 높음: FAIL")
         severity = max(severity, 2)
     elif used_pct >= 85.0:
-        lines.append("[CPU] total usage high: WARN")
+        lines.append("[CPU] 전체 사용률 높음: WARN")
         severity = max(severity, 1)
 
     try:
         l1, l5, l15, runq = _read_loadavg()
     except Exception as e:  # pragma: no cover
-        lines.append(f"[CPU] failed to collect /proc/loadavg: {e}")
+        lines.append(f"[CPU] /proc/loadavg 수집 실패: {e}")
         return 2, "\n".join(lines)
 
     cpu_count = os.cpu_count() or 1
@@ -81,40 +81,40 @@ def cpu_check() -> Tuple[int, str]:
     r5 = l5 / cpu_count
     r15 = l15 / cpu_count
     lines.append(
-        "[CPU] load avg 1/5/15m = {:.2f}/{:.2f}/{:.2f}, cores={}, ratio={:.2f}/{:.2f}/{:.2f}".format(
+        "[CPU] 부하 평균(load avg) 1/5/15m = {:.2f}/{:.2f}/{:.2f}, 코어수={}, 비율={:.2f}/{:.2f}/{:.2f}".format(
             l1, l5, l15, cpu_count, r1, r5, r15
         )
     )
 
     if r1 >= 2.0 or r5 >= 1.5:
-        lines.append("[CPU] sustained load ratio high: FAIL")
+        lines.append("[CPU] 지속적인 부하 비율 높음: FAIL")
         severity = max(severity, 2)
     elif r1 >= 1.2 or r5 >= 1.0:
-        lines.append("[CPU] load ratio elevated: WARN")
+        lines.append("[CPU] 부하 비율 상승됨: WARN")
         severity = max(severity, 1)
 
-    lines.append(f"[CPU] run queue={runq} (runnable tasks)")
+    lines.append(f"[CPU] 실행 큐(run queue)={runq} (실행 가능한 태스크 수)")
     if runq > (cpu_count * 2):
-        lines.append("[CPU] run queue indicates bottleneck: FAIL")
+        lines.append("[CPU] 실행 큐가 병목 현상을 나타냄: FAIL")
         severity = max(severity, 2)
     elif runq > cpu_count:
-        lines.append("[CPU] run queue above core count: WARN")
+        lines.append("[CPU] 실행 큐가 코어 수보다 많음: WARN")
         severity = max(severity, 1)
 
-    rc, out = run_cmd(["ps", "-eo", "pid,comm,%cpu", "--sort=-%cpu"])
+    rc, out = run_cmd(sudo_prefix + ["ps", "-eo", "pid,comm,%cpu", "--sort=-%cpu"])
     if rc == 0 and out.strip():
-        lines.append("[CPU] top cpu processes")
+        lines.append("[CPU] 상위 CPU 사용 프로세스")
         for row in out.splitlines()[1:6]:
             lines.append(f"[CPU] {row.strip()}")
     else:
-        lines.append("[CPU] failed to collect top cpu processes")
+        lines.append("[CPU] 상위 CPU 사용 프로세스 수집 실패")
         severity = max(severity, 1)
 
     if severity == 2:
-        lines.append("[CPU] result: FAIL")
+        lines.append("[CPU] 점검 결과: FAIL")
     elif severity == 1:
-        lines.append("[CPU] result: WARN")
+        lines.append("[CPU] 점검 결과: WARN")
     else:
-        lines.append("[CPU] result: OK")
+        lines.append("[CPU] 점검 결과: OK")
 
     return severity, "\n".join(lines)
